@@ -5,12 +5,13 @@ const { connect, createModel, add } = require('./mongodb/index')
 //链接mongodb
 connect();
 //创建model
-let model = createModel('movie-test', {
+let model = createModel('movies', {
     name: String,
     pic: String,
     year: String,
     type: String,
     area: String,
+    tag: String,
     actor: String,
     detial: String,
     url: String,
@@ -21,9 +22,16 @@ let model = createModel('movie-test', {
 function getMovieSource(playHref) {
     return new Promise((resolve, reject) => {
         request.get(playHref).end((err, res) => {
-            if (err) { reject('err') }
-            let url = /"url":"(.*?)",/.exec(res.text) && /"url":"(.*?)",/.exec(res.text)[1];
-            resolve(url || "null");
+            if (err) {
+                resolve('null')
+            } else {
+                if (res.text) {
+                    let url = /"url":"(.*?)",/.exec(res.text) && /"url":"(.*?)",/.exec(res.text)[1];
+                    resolve(url || "null");
+                } else {
+                    resolve("null")
+                }
+            }
         })
     })
 }
@@ -33,7 +41,9 @@ function getMovieData(herf) {
     return new Promise((resolve, reject) => {
         request.get(herf).end(async (err, res) => {
             if (err) {
-                reject('爬取电影信息失败')
+                reject('爬取电影信息失败');
+                // console.log('爬取电影信息失败');
+                // return new Promise((reslove) => {reslove('爬取电影信息失败')});
             } else {
                 let $ = cheerio.load(res.text);
                 let playHref = "http://www.tv331.com" + $('.numList a').eq(0).attr('href');
@@ -43,6 +53,7 @@ function getMovieData(herf) {
                     year: isNaN($('.white .margin-r-15').eq(0).text() * 1) ? "未知" : $('.white .margin-r-15').eq(0).text(),
                     type: $('.white .margin-r-15').eq(1).text().indexOf("片") === -1 && $('.white .margin-r-15').eq(1).text() !== "理论" ? "未知" : $('.white .margin-r-15').eq(1).text(),
                     area: $('.white .margin-r-15').eq(2).text() ? $('.white .margin-r-15').eq(2).text() : "未知",
+                    tag:"1",
                     actor: $('.ellipsis-2').eq(0).text(),
                     detial: $('.ellipsis-2').eq(1).text(),
                     url: await getMovieSource(playHref),
@@ -66,7 +77,7 @@ function getHerf(id, page) {
                     let data = await getMovieData('http://www.tv331.com/' + $(".item-pic").eq(i).attr('href'));
                     console.log(data);
                 }
-                resolve(`》》》》》》》》》》》》》》》》》》》》》》》》》》第${page}页操作完毕！`);
+                resolve(`》》》》》》》》》》》》》》》》》》》》》》》》第${page}页操作完毕！`);
             }
         })
     })
@@ -78,5 +89,4 @@ async function go(typeId, startPage, endPage) {
         console.log(msg)
     }
 }
-go('1', 1001, 1665);
 
